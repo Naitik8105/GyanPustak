@@ -153,7 +153,7 @@ function AuthPage({ setToken, setUser }) {
           method: 'POST',
           body: JSON.stringify(form),
         });
-        setMessage('✅ Registered successfully. Please login.');
+        setMessage('Registered successfully. Please login.');
         setMode('login');
       } else {
         const data = await apiFetch('/auth/login', {
@@ -595,10 +595,10 @@ function ReviewsPage({ token }) {
         }),
       }, token);
 
-      setMessage('✅ Review saved');
+      setMessage('Review saved');
       setReviewText('');
 
-      await load(); // reload after adding
+      await load(); 
     } catch (err) {
       setMessage(err.message);
     } finally {
