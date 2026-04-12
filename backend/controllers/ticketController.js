@@ -108,12 +108,18 @@ async function changeStatus(req, res) {
     const currentStatus = normalizeStatus(ticket.current_status);
 
     if (role === 'customer_support') {
-      if (!canCustomerSupportChange(currentStatus, newStatus)) {
-        return res.status(403).json({
-          message: 'Customer support can only change new tickets to assigned',
-        });
-      }
-    }
+  if (!canCustomerSupportChange(currentStatus, newStatus)) {
+    return res.status(403).json({
+      message: 'Customer support can only change new tickets to assigned',
+    });
+  }
+
+  if (!assignedAdminId) {
+    return res.status(400).json({
+      message: 'Admin must be assigned when changing status to assigned',
+    });
+  }
+}
 
     if (role === 'administrator' || role === 'super_admin') {
       if (!['assigned', 'in-process', 'closed'].includes(currentStatus)) {

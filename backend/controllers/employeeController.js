@@ -16,7 +16,7 @@ async function listEmployees(req, res) {
 
 async function searchEmployees(req, res) {
   try {
-    if (!['administrator', 'super_admin'].includes(req.user.role)) {
+    if (!['administrator', 'super_admin', 'customer_support'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

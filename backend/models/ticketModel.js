@@ -1,5 +1,19 @@
 const pool = require('../config/db');
 
+const ALLOWED_STATUSES = new Set(['new', 'assigned', 'in-process', 'closed']);
+
+function normalizeStatus(status) {
+  return String(status || '').trim().toLowerCase();
+}
+
+function validateStatus(status) {
+  const normalized = normalizeStatus(status);
+  if (!ALLOWED_STATUSES.has(normalized)) {
+    throw new Error('Invalid status value');
+  }
+  return normalized;
+}
+
 async function createTicket(data) {
   const {
     category,
@@ -12,6 +26,8 @@ async function createTicket(data) {
     current_status,
   } = data;
 
+  const normalizedStatus = current_status ? validateStatus(current_status) : 'new';
+
   const [result] = await pool.execute(
     `INSERT INTO trouble_ticket
      (category, title, problem_description, current_status,
@@ -22,7 +38,7 @@ async function createTicket(data) {
       category || null,
       title,
       problem_description,
-      current_status || 'new',
+      normalizedStatus,
       created_by_student_id || null,
       created_by_support_id || null,
       assigned_admin_id || null,
@@ -54,6 +70,8 @@ async function listTicketsForEmployee() {
 }
 
 async function updateTicketStatus(ticketId, status, employeeId, solutionDescription = null, assignedAdminId = null) {
+  const nextStatus = validateStatus(status);
+
   const [ticketRows] = await pool.execute(
     `SELECT current_status, assigned_admin_id
      FROM trouble_ticket
@@ -65,15 +83,12 @@ async function updateTicketStatus(ticketId, status, employeeId, solutionDescript
     throw new Error('Ticket not found');
   }
 
-  const oldStatus = ticketRows[0].current_status;
+  const oldStatus = normalizeStatus(ticketRows[0].current_status);
 
   const nextAssignedAdminId =
     assignedAdminId !== null && assignedAdminId !== undefined
       ? assignedAdminId
       : ticketRows[0].assigned_admin_id;
-
-  const nextResolvedAdminId =
-    status === 'closed' ? employeeId : null;
 
   await pool.execute(
     `UPDATE trouble_ticket
@@ -90,12 +105,12 @@ async function updateTicketStatus(ticketId, status, employeeId, solutionDescript
          END
      WHERE ticket_id = ?`,
     [
-      status,
+      nextStatus,
       solutionDescription,
       nextAssignedAdminId,
-      status,
-      nextResolvedAdminId,
-      status,
+      nextStatus,
+      employeeId,
+      nextStatus,
       ticketId,
     ]
   );
@@ -104,7 +119,7 @@ async function updateTicketStatus(ticketId, status, employeeId, solutionDescript
     `INSERT INTO ticket_status_history
      (ticket_id, old_status, new_status, changed_by_employee_id)
      VALUES (?, ?, ?, ?)`,
-    [ticketId, oldStatus, status, employeeId]
+    [ticketId, oldStatus, nextStatus, employeeId]
   );
 }
 

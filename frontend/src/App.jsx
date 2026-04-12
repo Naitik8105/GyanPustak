@@ -40,8 +40,11 @@ export default function App() {
   const [page, setPage] = useState('books');
 
   useEffect(() => {
-    if (token) localStorage.setItem('token', token); else localStorage.removeItem('token');
-    if (user) localStorage.setItem('user', JSON.stringify(user)); else localStorage.removeItem('user');
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
+
+    if (user) localStorage.setItem('user', JSON.stringify(user));
+    else localStorage.removeItem('user');
   }, [token, user]);
 
   useEffect(() => {
@@ -67,33 +70,58 @@ export default function App() {
       <div className="card title">
         <div>
           <h2 style={{ margin: 0 }}>GyanPustak</h2>
-          <div className="small">Logged in as {user.first_name} {user.last_name}</div>
+          <div className="small">
+            Logged in as {user.first_name} {user.last_name}
+          </div>
         </div>
         <div className="small badge">{user.role}</div>
       </div>
 
       <nav>
-        <button className={page === 'books' ? 'active' : ''} onClick={() => setPage('books')}>Books</button>
+        <button className={page === 'books' ? 'active' : ''} onClick={() => setPage('books')}>
+          Books
+        </button>
         {(user.role === 'administrator' || user.role === 'super_admin') && (
-          <button className={page === 'employees' ? 'active' : ''} onClick={() => setPage('employees')}>Employees</button>
+          <button className={page === 'employees' ? 'active' : ''} onClick={() => setPage('employees')}>
+            Employees
+          </button>
         )}
         {user.role === 'student' && (
           <>
-            <button className={page === 'cart' ? 'active' : ''} onClick={() => setPage('cart')}>Cart</button>
-            <button className={page === 'orders' ? 'active' : ''} onClick={() => setPage('orders')}>Orders</button>
-            <button className={page === 'reviews' ? 'active' : ''} onClick={() => setPage('reviews')}>Reviews</button>
+            <button className={page === 'cart' ? 'active' : ''} onClick={() => setPage('cart')}>
+              Cart
+            </button>
+            <button className={page === 'orders' ? 'active' : ''} onClick={() => setPage('orders')}>
+              Orders
+            </button>
+            <button className={page === 'reviews' ? 'active' : ''} onClick={() => setPage('reviews')}>
+              Reviews
+            </button>
           </>
         )}
-        <button className={page === 'tickets' ? 'active' : ''} onClick={() => setPage('tickets')}>Tickets</button>
-        <button className={page === 'courses' ? 'active' : ''} onClick={() => setPage('courses')}>Courses</button>
-        <button className="secondary" onClick={() => { setToken(''); setUser(null); localStorage.clear(); }}>Logout</button>
+        <button className={page === 'tickets' ? 'active' : ''} onClick={() => setPage('tickets')}>
+          Tickets
+        </button>
+        <button className={page === 'courses' ? 'active' : ''} onClick={() => setPage('courses')}>
+          Courses
+        </button>
+        <button
+          className="secondary"
+          onClick={() => {
+            setToken('');
+            setUser(null);
+            localStorage.clear();
+          }}
+        >
+          Logout
+        </button>
       </nav>
 
       {page === 'books' && <BooksPage token={token} user={user} />}
       {page === 'employees' && <EmployeesPage token={token} user={user} />}
       {page === 'cart' && <CartPage token={token} />}
       {page === 'orders' && <OrdersPage token={token} />}
-      {page === 'reviews' && <ReviewsPage token={token} />}
+      {page === 'reviews' && <ReviewsPage token={token} user={user} />}
       {page === 'tickets' && <TicketsPage token={token} user={user} />}
       {page === 'courses' && <CoursesPage token={token} user={user} />}
     </div>
@@ -107,8 +135,7 @@ function AuthPage({ setToken, setUser }) {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
@@ -116,13 +143,13 @@ function AuthPage({ setToken, setUser }) {
     setError('');
 
     if (!form.email || !form.password) {
-      setError("Email and password are required");
+      setError('Email and password are required');
       return;
     }
 
     try {
       if (mode === 'register') {
-        await apiFetch('/admin/employees', {
+        await apiFetch('/auth/register', {
           method: 'POST',
           body: JSON.stringify(form),
         });
@@ -147,14 +174,11 @@ function AuthPage({ setToken, setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-
-        {/* LEFT SIDE */}
         <div className="auth-left">
           <h1>GyanPustak</h1>
           <p>Manage books, orders, courses and more in one place.</p>
         </div>
 
-        {/* RIGHT SIDE */}
         <div className="auth-right">
           <h2>{mode === 'login' ? 'Login' : 'Register'}</h2>
 
@@ -162,32 +186,25 @@ function AuthPage({ setToken, setUser }) {
           {message && <div className="alert success">{message}</div>}
 
           <div className="switch-btns">
-            <button
-              className={mode === 'login' ? 'active' : ''}
-              onClick={() => setMode('login')}
-            >
+            <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
               Login
             </button>
-            <button
-              className={mode === 'register' ? 'active' : ''}
-              onClick={() => setMode('register')}
-            >
+            <button className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>
               Register
             </button>
           </div>
 
           <form onSubmit={submit}>
-
             {mode === 'register' && (
               <>
                 <div className="row">
-                  <input name="first_name" placeholder="First name" onChange={handleChange} />
-                  <input name="last_name" placeholder="Last name" onChange={handleChange} />
+                  <input name="first_name" placeholder="First name" value={form.first_name} onChange={handleChange} />
+                  <input name="last_name" placeholder="Last name" value={form.last_name} onChange={handleChange} />
                 </div>
 
                 <div className="row">
-                  <input name="phone_number" placeholder="Phone number" onChange={handleChange} />
-                  <input name="address" placeholder="Address" onChange={handleChange} />
+                  <input name="phone_number" placeholder="Phone number" value={form.phone_number} onChange={handleChange} />
+                  <input name="address" placeholder="Address" value={form.address} onChange={handleChange} />
                 </div>
 
                 <div className="row">
@@ -239,14 +256,18 @@ function BooksPage({ token, user }) {
     language: '', book_type: '', purchase_option: '', format: '', price: '',
     quantity: '', category: '', subcategory: '', authors: '', keywords: ''
   });
+
   const canEdit = user.role === 'administrator' || user.role === 'super_admin';
+  const canAddToCart = user.role === 'student';
 
   const load = async () => {
     const data = await apiFetch(`/books?q=${encodeURIComponent(q)}`, {}, token);
     setBooks(data);
   };
 
-  useEffect(() => { load().catch(() => { }); }, []);
+  useEffect(() => {
+    load().catch(() => { });
+  }, []);
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -316,7 +337,14 @@ function BooksPage({ token, user }) {
         <table>
           <thead>
             <tr>
-              <th>Title</th><th>ISBN</th><th>Publisher</th><th>Price</th><th>Qty</th><th>Category</th><th>Subcategory</th><th>Action</th>
+              <th>Title</th>
+              <th>ISBN</th>
+              <th>Publisher</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Category</th>
+              <th>Subcategory</th>
+              {canAddToCart && <th>Action</th>}
             </tr>
           </thead>
           <tbody>
@@ -329,7 +357,15 @@ function BooksPage({ token, user }) {
                 <td>{b.quantity}</td>
                 <td>{b.category}</td>
                 <td>{b.subcategory}</td>
-                <td><button onClick={() => addToCart(b.book_id)}>Add to cart</button></td>
+                {canAddToCart && (
+                  <td>
+                    {user.role === 'student' && (
+                      <button onClick={() => addToCart(b.book_id)}>
+                        Add to cart
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -361,10 +397,11 @@ function EmployeesPage({ token, user }) {
     setEmployees(data);
   };
 
-  useEffect(() => { load().catch(() => {}); }, []);
+  useEffect(() => {
+    load().catch(() => { });
+  }, []);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const createEmployee = async () => {
     await apiFetch('/admin/employees', {
@@ -391,17 +428,17 @@ function EmployeesPage({ token, user }) {
           <h4>Add Employee</h4>
 
           <div className="grid3">
-            <input name="first_name" placeholder="First name" onChange={handleChange} />
-            <input name="last_name" placeholder="Last name" onChange={handleChange} />
-            <input name="email" placeholder="Email" onChange={handleChange} />
-            <input name="phone_number" placeholder="Phone" onChange={handleChange} />
-            <input name="address" placeholder="Address" onChange={handleChange} />
-            <input name="password" placeholder="Password" onChange={handleChange} />
-            <input name="gender" placeholder="Gender" onChange={handleChange} />
-            <input name="salary" placeholder="Salary" onChange={handleChange} />
-            <input name="aadhaar_number" placeholder="Aadhaar" onChange={handleChange} />
+            <input name="first_name" placeholder="First name" value={form.first_name} onChange={handleChange} />
+            <input name="last_name" placeholder="Last name" value={form.last_name} onChange={handleChange} />
+            <input name="email" placeholder="Email" value={form.email} onChange={handleChange} />
+            <input name="phone_number" placeholder="Phone" value={form.phone_number} onChange={handleChange} />
+            <input name="address" placeholder="Address" value={form.address} onChange={handleChange} />
+            <input name="password" placeholder="Password" value={form.password} onChange={handleChange} />
+            <input name="gender" placeholder="Gender" value={form.gender} onChange={handleChange} />
+            <input name="salary" placeholder="Salary" value={form.salary} onChange={handleChange} />
+            <input name="aadhaar_number" placeholder="Aadhaar" value={form.aadhaar_number} onChange={handleChange} />
 
-            <select name="role" onChange={handleChange}>
+            <select name="role" value={form.role} onChange={handleChange}>
               <option value="customer_support">Customer Support</option>
               <option value="administrator">Administrator</option>
             </select>
@@ -438,18 +475,35 @@ function EmployeesPage({ token, user }) {
 function CartPage({ token }) {
   const [cart, setCart] = useState(null);
   const [bookId, setBookId] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const load = async () => {
     const data = await apiFetch('/cart', {}, token);
     setCart(data);
   };
 
-  useEffect(() => { load().catch(() => { }); }, []);
+  useEffect(() => {
+    load().catch(() => { });
+  }, []);
 
   const addItem = async () => {
-    await apiFetch('/cart/items', { method: 'POST', body: JSON.stringify({ book_id: bookId, quantity: 1 }) }, token);
+    await apiFetch('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify({ book_id: bookId, quantity: 1 }),
+    }, token);
     setBookId('');
     await load();
+  };
+
+  const removeItem = async (book_id) => {
+    if (!window.confirm('Remove this item from cart?')) return;
+    setLoading(true);
+    try {
+      await apiFetch(`/cart/items/${book_id}`, { method: 'DELETE' }, token);
+      await load();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const checkout = async () => {
@@ -466,14 +520,22 @@ function CartPage({ token }) {
         <button onClick={addItem}>Add item</button>
       </div>
       <button style={{ marginTop: 12 }} onClick={checkout}>Checkout</button>
+
       <table style={{ marginTop: 12 }}>
-        <thead><tr><th>Book</th><th>Qty</th><th>Price</th></tr></thead>
+        <thead>
+          <tr><th>Book</th><th>Qty</th><th>Price</th><th>Action</th></tr>
+        </thead>
         <tbody>
           {(cart?.items || []).map((item) => (
             <tr key={item.book_id}>
               <td>{item.title}</td>
               <td>{item.quantity}</td>
               <td>{item.price}</td>
+              <td>
+                <button className="secondary" disabled={loading} onClick={() => removeItem(item.book_id)}>
+                  Remove
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -484,7 +546,9 @@ function CartPage({ token }) {
 
 function OrdersPage({ token }) {
   const [orders, setOrders] = useState([]);
-  useEffect(() => { apiFetch('/orders', {}, token).then(setOrders).catch(() => { }); }, []);
+  useEffect(() => {
+    apiFetch('/orders', {}, token).then(setOrders).catch(() => { });
+  }, []);
   return (
     <div className="card">
       <h3>Orders</h3>
@@ -509,26 +573,81 @@ function ReviewsPage({ token }) {
   const [rating, setRating] = useState('5');
   const [reviewText, setReviewText] = useState('');
   const [reviews, setReviews] = useState([]);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const add = async () => {
-    await apiFetch('/reviews', {
-      method: 'POST',
-      body: JSON.stringify({ book_id: Number(bookId), rating: Number(rating), review_text: reviewText }),
-    }, token);
-    alert('Review saved');
+    setMessage('');
+
+    if (!bookId) {
+      setMessage('Please enter Book ID');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiFetch('/reviews', {
+        method: 'POST',
+        body: JSON.stringify({
+          book_id: Number(bookId),
+          rating: Number(rating),
+          review_text: reviewText
+        }),
+      }, token);
+
+      setMessage('✅ Review saved');
+      setReviewText('');
+
+      await load(); // reload after adding
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const load = async () => {
-    const data = await apiFetch(`/reviews/book/${bookId}`, {}, token);
-    setReviews(data);
+    setMessage('');
+
+    if (!bookId) {
+      setReviews([]);
+      setMessage('Enter a Book ID to load reviews.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await apiFetch(`/reviews/book/${bookId}`, {}, token);
+      const safeData = Array.isArray(data) ? data : [];
+
+      setReviews(safeData);
+
+      if (!safeData.length) {
+        setMessage('No reviews found for this book.');
+      }
+    } catch (err) {
+      setReviews([]);
+      setMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="card">
       <h3>Reviews</h3>
+
       <div className="row">
-        <input placeholder="Book ID" value={bookId} onChange={(e) => setBookId(e.target.value)} />
-        <select value={rating} onChange={(e) => setRating(e.target.value)}>
+        <input
+          placeholder="Book ID"
+          value={bookId}
+          onChange={(e) => setBookId(e.target.value)}
+        />
+
+        <select
+          value={rating}
+          onChange={(e) => setRating(e.target.value)}
+        >
           <option value="5">5</option>
           <option value="4">4</option>
           <option value="3">3</option>
@@ -536,11 +655,29 @@ function ReviewsPage({ token }) {
           <option value="1">1</option>
         </select>
       </div>
-      <textarea placeholder="Review text" value={reviewText} onChange={(e) => setReviewText(e.target.value)} />
+
+      <textarea
+        placeholder="Review text"
+        value={reviewText}
+        onChange={(e) => setReviewText(e.target.value)}
+      />
+
       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <button onClick={add}>Save Review</button>
-        <button className="secondary" onClick={load}>Load Reviews</button>
+        <button onClick={add} disabled={loading}>
+          Save Review
+        </button>
+
+        <button className="secondary" onClick={load} disabled={loading}>
+          Load Reviews
+        </button>
       </div>
+
+      {message && (
+        <div className="small" style={{ marginTop: 10 }}>
+          {message}
+        </div>
+      )}
+
       <div style={{ marginTop: 12 }}>
         {reviews.map((r) => (
           <div className="card" key={r.review_id}>
@@ -556,60 +693,188 @@ function ReviewsPage({ token }) {
 function TicketsPage({ token, user }) {
   const [form, setForm] = useState({ category: '', title: '', problem_description: '' });
   const [tickets, setTickets] = useState([]);
-  const [status, setStatus] = useState({ id: '', newStatus: '' });
+  const [status, setStatus] = useState({ id: '', newStatus: '', assigned_admin_id: '' });
+  const [historyTicketId, setHistoryTicketId] = useState('');
   const [history, setHistory] = useState([]);
+  const [admins, setAdmins] = useState([]);
+
+  const canCreateTicket = user.role === 'student';
+  const canUpdateTickets =
+    user.role === 'customer_support' ||
+    user.role === 'administrator' ||
+    user.role === 'super_admin';
 
   const load = async () => {
     const data = await apiFetch('/tickets', {}, token);
     setTickets(data);
   };
 
-  useEffect(() => { load().catch(() => { }); }, []);
+  useEffect(() => {
+    load().catch(() => { });
+
+    if (user.role === 'customer_support') {
+      apiFetch('/employees/search?q=', {}, token)
+        .then((data) => {
+          const adminsOnly = (Array.isArray(data) ? data : []).filter(
+            (e) => String(e.role).toLowerCase() === 'administrator'
+          );
+          setAdmins(adminsOnly);
+        })
+        .catch(() => { });
+    }
+  }, [token, user]);
 
   const create = async () => {
-    await apiFetch('/tickets', { method: 'POST', body: JSON.stringify(form) }, token);
+    await apiFetch('/tickets', {
+      method: 'POST',
+      body: JSON.stringify(form)
+    }, token);
+
     setForm({ category: '', title: '', problem_description: '' });
     await load();
   };
 
   const change = async () => {
+    if (!status.id || !status.newStatus) {
+      alert('Provide ticket ID and status');
+      return;
+    }
+
+    if (user.role === 'customer_support' && !status.assigned_admin_id) {
+      alert('Please select an admin');
+      return;
+    }
+
     await apiFetch(`/tickets/${status.id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status: status.newStatus, solution_description: 'Updated via UI' })
+      body: JSON.stringify({
+        status: status.newStatus,
+        assigned_admin_id: status.assigned_admin_id || null,
+        solution_description: 'Updated via UI'
+      })
     }, token);
+
+    setStatus({ id: '', newStatus: '', assigned_admin_id: '' });
     await load();
   };
 
   const loadHistory = async () => {
-    const data = await apiFetch(`/tickets/${status.id}/history`, {}, token);
-    setHistory(data);
+    if (!historyTicketId) {
+      setHistory([]);
+      alert('Enter a ticket ID first');
+      return;
+    }
+    const data = await apiFetch(`/tickets/${historyTicketId}/history`, {}, token);
+    setHistory(Array.isArray(data) ? data : []);
   };
+
+  const getAllowedStatuses = (currentStatus) => {
+    if (user.role === 'customer_support') {
+      return currentStatus === 'new' ? ['assigned'] : [];
+    }
+
+    if (user.role === 'administrator' || user.role === 'super_admin') {
+      if (currentStatus === 'assigned') return ['in-process'];
+      if (currentStatus === 'in-process') return ['closed'];
+      return [];
+    }
+
+    return [];
+  };
+
+  const selectedTicket = tickets.find(
+    (t) => String(t.ticket_id) === String(status.id)
+  );
 
   return (
     <div className="card">
       <h3>Tickets</h3>
-      <div className="grid3">
-        <input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-        <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <input placeholder="Problem description" value={form.problem_description} onChange={(e) => setForm({ ...form, problem_description: e.target.value })} />
-      </div>
-      <button style={{ marginTop: 8 }} onClick={create}>Create Ticket</button>
 
-      <div className="card">
-        <div className="row">
-          <input placeholder="Ticket ID" value={status.id} onChange={(e) => setStatus({ ...status, id: e.target.value })} />
-          <input placeholder="New Status" value={status.newStatus} onChange={(e) => setStatus({ ...status, newStatus: e.target.value })} />
+      {canCreateTicket && (
+        <>
+          <div className="grid3">
+            <input
+              placeholder="Category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            />
+            <input
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+            <input
+              placeholder="Problem description"
+              value={form.problem_description}
+              onChange={(e) =>
+                setForm({ ...form, problem_description: e.target.value })
+              }
+            />
+          </div>
+          <button style={{ marginTop: 8 }} onClick={create}>
+            Create Ticket
+          </button>
+        </>
+      )}
+
+      {canUpdateTickets && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="row">
+            <input
+              placeholder="Ticket ID"
+              value={status.id}
+              onChange={(e) => {
+                const value = e.target.value;
+                setStatus({ ...status, id: value });
+                setHistoryTicketId(value);
+              }}
+            />
+
+            <select
+              value={status.newStatus}
+              onChange={(e) =>
+                setStatus({ ...status, newStatus: e.target.value })
+              }
+            >
+              <option value="">Select Status</option>
+              {getAllowedStatuses(selectedTicket?.current_status).map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {user.role === 'customer_support' && status.newStatus === 'assigned' && (
+            <select
+              value={status.assigned_admin_id}
+              onChange={(e) =>
+                setStatus({ ...status, assigned_admin_id: e.target.value })
+              }
+            >
+              <option value="">Select Admin</option>
+              {admins.map((a) => (
+                <option key={a.person_id} value={a.person_id}>
+                  {a.first_name} {a.last_name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={change}>Update Status</button>
+            <button className="secondary" onClick={loadHistory}>
+              Load History
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button onClick={change}>Update Status</button>
-          <button className="secondary" onClick={loadHistory}>Load History</button>
-        </div>
-      </div>
+      )}
 
       <h4>Tickets</h4>
       {tickets.map((t) => (
         <div key={t.ticket_id} className="card">
-          <b>#{t.ticket_id}</b> {t.title} <span className="badge">{t.current_status}</span>
+          <b>#{t.ticket_id}</b> {t.title}{' '}
+          <span className="badge">{t.current_status}</span>
           <div className="small">{t.problem_description}</div>
         </div>
       ))}
@@ -619,7 +884,8 @@ function TicketsPage({ token, user }) {
           <h4>Status History</h4>
           {history.map((h) => (
             <div key={h.history_id} className="card">
-              {h.old_status} → {h.new_status} at {new Date(h.changed_at).toLocaleString()}
+              {h.old_status} → {h.new_status} at{' '}
+              {new Date(h.changed_at).toLocaleString()}
             </div>
           ))}
         </>
@@ -639,7 +905,9 @@ function CoursesPage({ token, user }) {
     setOfferings(data);
   };
 
-  useEffect(() => { load().catch(() => { }); }, []);
+  useEffect(() => {
+    load().catch(() => { });
+  }, []);
 
   const addCourse = async () => {
     await apiFetch('/courses', { method: 'POST', body: JSON.stringify(courseForm) }, token);
@@ -699,17 +967,3 @@ function CoursesPage({ token, user }) {
     </div>
   );
 }
-
-const addEmployee = async () => {
-  try {
-    await apiFetch('/admin/employees', {
-      method: 'POST',
-      body: JSON.stringify(form),
-    }, token);
-
-    alert('Employee created');
-    load();
-  } catch (err) {
-    alert(err.message);
-  }
-};
