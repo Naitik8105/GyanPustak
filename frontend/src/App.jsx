@@ -87,18 +87,24 @@ export default function App() {
           </button>
         )}
         {user.role === 'student' && (
-          <>
-            <button className={page === 'cart' ? 'active' : ''} onClick={() => setPage('cart')}>
-              Cart
-            </button>
-            <button className={page === 'orders' ? 'active' : ''} onClick={() => setPage('orders')}>
-              Orders
-            </button>
-            <button className={page === 'reviews' ? 'active' : ''} onClick={() => setPage('reviews')}>
-              Reviews
-            </button>
-          </>
-        )}
+  <>
+    <button className={page === 'cart' ? 'active' : ''} onClick={() => setPage('cart')}>
+      Cart
+    </button>
+    <button className={page === 'orders' ? 'active' : ''} onClick={() => setPage('orders')}>
+      Orders
+    </button>
+    <button className={page === 'reviews' ? 'active' : ''} onClick={() => setPage('reviews')}>
+      Reviews
+    </button>
+  </>
+)}
+
+{(user.role === 'customer_support' || user.role === 'super_admin') && (
+  <button className={page === 'orders' ? 'active' : ''} onClick={() => setPage('orders')}>
+    Orders
+  </button>
+)}
         <button className={page === 'tickets' ? 'active' : ''} onClick={() => setPage('tickets')}>
           Tickets
         </button>
@@ -120,7 +126,7 @@ export default function App() {
       {page === 'books' && <BooksPage token={token} user={user} />}
       {page === 'employees' && <EmployeesPage token={token} user={user} />}
       {page === 'cart' && <CartPage token={token} />}
-      {page === 'orders' && <OrdersPage token={token} />}
+      {page === 'orders' && <OrdersPage token={token} user={user} />}
       {page === 'reviews' && <ReviewsPage token={token} user={user} />}
       {page === 'tickets' && <TicketsPage token={token} user={user} />}
       {page === 'courses' && <CoursesPage token={token} user={user} />}
@@ -340,6 +346,7 @@ function BooksPage({ token, user }) {
               <th>Title</th>
               <th>ISBN</th>
               <th>Publisher</th>
+              <th>Purchase Option</th>
               <th>Price</th>
               <th>Qty</th>
               <th>Category</th>
@@ -353,6 +360,7 @@ function BooksPage({ token, user }) {
                 <td>{b.title}</td>
                 <td>{b.isbn}</td>
                 <td>{b.publisher}</td>
+                <td>{b.purchase_option}</td>
                 <td>{b.price}</td>
                 <td>{b.quantity}</td>
                 <td>{b.category}</td>
@@ -544,30 +552,191 @@ function CartPage({ token }) {
   );
 }
 
-function OrdersPage({ token }) {
+function OrdersPage({ token, user }) {
   const [orders, setOrders] = useState([]);
+  const [statusForm, setStatusForm] = useState({ order_id: '', status: '' });
+  const [selectedOrderId, setSelectedOrderId] = useState('');
+  const [orderDetails, setOrderDetails] = useState(null);
+
+  const isStaff = user && (user.role === 'customer_support' || user.role === 'super_admin');
+
+  const load = async () => {
+    const url = isStaff ? '/orders/all' : '/orders';
+    const data = await apiFetch(url, {}, token);
+    setOrders(Array.isArray(data) ? data : []);
+  };
+
   useEffect(() => {
-    apiFetch('/orders', {}, token).then(setOrders).catch(() => { });
-  }, []);
+    if (!token || !user) return;
+    load().catch(() => {});
+  }, [token, user]);
+
+  const loadOrderDetails = async (orderId) => {
+    if (!orderId) {
+      setOrderDetails(null);
+      return;
+    }
+    const data = await apiFetch(`/orders/${orderId}`, {}, token);
+    setOrderDetails(data);
+  };
+
+  const updateStatus = async () => {
+    if (!isStaff) return;
+    if (!statusForm.order_id || !statusForm.status) {
+      alert('Select order ID and status');
+      return;
+    }
+
+    await apiFetch(`/orders/${statusForm.order_id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: statusForm.status }),
+    }, token);
+
+    setStatusForm({ order_id: '', status: '' });
+    await load();
+    if (String(selectedOrderId) === String(statusForm.order_id)) {
+      await loadOrderDetails(statusForm.order_id);
+    }
+  };
+
+  const returnRentalItem = async (orderId, bookId) => {
+    await apiFetch(`/orders/${orderId}/items/${bookId}/return`, {
+      method: 'PUT',
+    }, token);
+    await loadOrderDetails(orderId);
+    await load();
+  };
+
+  const getAllowedStatuses = (currentStatus) => {
+    const s = String(currentStatus || '').toLowerCase();
+    if (s === 'new') return ['processed', 'canceled'];
+    if (s === 'processed') return ['awaiting shipping', 'canceled'];
+    if (s === 'awaiting shipping') return ['shipped', 'canceled'];
+    if (s === 'shipped') return ['delivered'];
+    return [];
+  };
+
+  const selectedOrder = orders.find(
+    (o) => String(o.order_id) === String(statusForm.order_id)
+  );
+
   return (
     <div className="card">
       <h3>Orders</h3>
+
+      {isStaff && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="row">
+            <input
+              placeholder="Order ID"
+              value={statusForm.order_id}
+              onChange={(e) =>
+                setStatusForm({ ...statusForm, order_id: e.target.value })
+              }
+            />
+            <select
+              value={statusForm.status}
+              onChange={(e) =>
+                setStatusForm({ ...statusForm, status: e.target.value })
+              }
+            >
+              <option value="">Select Status</option>
+              {getAllowedStatuses(selectedOrder?.order_status).map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={updateStatus}>Update Order Status</button>
+            <button className="secondary" onClick={load}>Reload</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <input
+          placeholder="Enter order ID to view details"
+          value={selectedOrderId}
+          onChange={(e) => setSelectedOrderId(e.target.value)}
+        />
+        <button onClick={() => loadOrderDetails(selectedOrderId)}>View Details</button>
+      </div>
+
       <table>
-        <thead><tr><th>Order ID</th><th>Status</th><th>Date</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Student</th>
+            <th>Status</th>
+            <th>Date Created</th>
+            <th>Date Fulfilled</th>
+          </tr>
+        </thead>
         <tbody>
           {orders.map((o) => (
-            <tr key={o.order_id}>
+            <tr
+              key={o.order_id}
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                setSelectedOrderId(o.order_id);
+                loadOrderDetails(o.order_id);
+              }}
+            >
               <td>{o.order_id}</td>
+              <td>{o.first_name ? `${o.first_name} ${o.last_name}` : o.student_id}</td>
               <td>{o.order_status}</td>
-              <td>{new Date(o.date_created).toLocaleString()}</td>
+              <td>{o.date_created ? new Date(o.date_created).toLocaleString() : '-'}</td>
+              <td>{o.date_fulfilled ? new Date(o.date_fulfilled).toLocaleString() : '-'}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {orderDetails && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <h4>Order Details</h4>
+          <div className="small">
+            Order ID: {orderDetails.order.order_id} | Status: {orderDetails.order.order_status}
+          </div>
+
+          <table style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>Book</th>
+                <th>Type</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Rental Status</th>
+                <th>Due Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orderDetails.items.map((item) => (
+                <tr key={item.book_id}>
+                  <td>{item.title}</td>
+                  <td>{item.purchase_option}</td>
+                  <td>{item.quantity}</td>
+                  <td>{item.unit_price_at_purchase}</td>
+                  <td>{item.rental_status || '-'}</td>
+                  <td>{item.rental_due_date ? new Date(item.rental_due_date).toLocaleDateString() : '-'}</td>
+                  <td>
+                    {item.is_rental &&
+                      (item.rental_status === 'rented' || item.rental_status === 'overdue') && (
+                        <button onClick={() => returnRentalItem(orderDetails.order.order_id, item.book_id)}>
+                          Return
+                        </button>
+                      )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
-
 function ReviewsPage({ token }) {
   const [bookId, setBookId] = useState('');
   const [rating, setRating] = useState('5');
