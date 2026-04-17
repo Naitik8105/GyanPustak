@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const API = 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_URL;
 
 async function apiFetch(path, options = {}, token) {
   const res = await fetch(`${API}${path}`, {
