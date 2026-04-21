@@ -412,7 +412,7 @@ function EmployeesPage({ token, user }) {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const createEmployee = async () => {
-    await apiFetch('/admin/employees', {
+    await apiFetch('/employees', {
       method: 'POST',
       body: JSON.stringify(form)
     }, token);

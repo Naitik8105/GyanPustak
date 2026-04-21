@@ -5,5 +5,6 @@ const { restrictTo } = require('../middleware/roleMiddleware');
 
 router.get('/', protect, restrictTo('administrator', 'super_admin'), employeeController.listEmployees);
 router.get('/search', protect, restrictTo('administrator', 'super_admin', 'customer_support'), employeeController.searchEmployees);
+router.post('/', protect, restrictTo('super_admin'), employeeController.createEmployee);
 
 module.exports = router;
